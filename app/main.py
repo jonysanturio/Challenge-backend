@@ -1,0 +1,38 @@
+from fastapi import FastAPI, HTTPException, Depends, status
+from sqlalchemy.orm import Session
+from .import crud, models, schemas
+from .databases import SessionLocal, engine
+
+models.base.metadata.create_all(engine)
+
+app = FastAPI()
+
+#Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.post("/products/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)
+def create_product(product : schemas.ProductCreate, db : Session = Depends(get_db)):
+    return crud.create_Product(db = db, product = product)
+
+@app.get("/products/{product_id}", response_model=schemas.ProductResponse)
+def read_product(product_id : int, db : Session = Depends(get_db)):
+    db_product = crud.get_Product(db, product_id=product_id)
+    if db_product is None:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return db_product
+
+@app.put("/product/{product_id}", response_model=schemas.ProductResponse)
+def update_Product(product_id : int, product : schemas.ProductUpdate, db : Session = Depends(get_db)):
+    return crud.update_Product(db = db, product_id = product_id, product = product)
+
+@app.delete("/products/{product_id}", response_model=schemas.ProductResponse)
+def delete_Product(product_id : int, db : Session = Depends(get_db)):
+    return crud.delete_Product(db = db, product_id = product_id)
+
+
+
