@@ -1,3 +1,7 @@
 fastapi
 uvicorn
 pydantic
+redis
+pytest
+pytest-asyncio
+sqlmodel

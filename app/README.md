@@ -1,35 +1,34 @@
 # ----Objetivo del challenge:------
-# El presente challenge tiene como finalidad crear un sistema que sea coherente y escalable para gestionar productos de forma centralizada, y que múltiples tiendas se sincronicen en su inventario en tiempo real
-
-# -----Funcionalidad de la aplicación:------
-# 1- Crear productos
-# 2- Leer productos
-# 3- Actualizar stocks y precios
-# 4- Eliminar productos
-# 5- Validar datos
-# 6- Manejo de error HTTP estándar
+ El presente challenge tiene como finalidad crear un sistema que sea coherente y escalable para gestionar productos de forma centralizada, y que múltiples tiendas se sincronicen en su inventario en tiempo real. A su vez contiene operaciones CRUD básicas sobre una base de datos relacional. A su vez se tienen que manejar los alto tráfico, baja latencia y coherencia de datos en un sistema distribuido.
 
 # ------Manejo de herramientas:-------
-# Base de datos: SQLite 
-# Backend**: FastAPI → API REST 
-# Estructura modular: separación de capas (models, schemas, crud, main)
+ Base de datos: SQLite 
+ Backend**: FastAPI → API REST 
+ Estructura modular: separación de capas (models, schemas, crud, main)
 
 
-# ------Ejecución del programa:-------
-# 1. En el archivo requirements.txt se encuentran las dependencias que se usan para la creación de la aplicación con fastapi, uvicorn, sqlalchemy, pydantic, se procede a instalar las dependencias con: pip install -r requirements.txt
-
-# 2. Iniciar la API: python -m uvicorn app.main:app --reload
-
-# NOTA: Al iniciar la API desde la terminal nos econtraremos con una IP especifica de Uvicorn que se ejecuta de manera virtual desde venv. En si esa IP al iniciarla desde cualquier navegador no nos va a direccionar a la FastAPI, en ese caso debe seguir con el paso numero 3 para acceder correctamente a la documentación. 
-# 3. Acceder a la documentación: http://IP:8000/docs
-
+## 🏗️ Arquitectura propuesta
+1. **API REST** para exponer operaciones CRUD.
+2. **Base de datos principal** (PostgreSQL).
+3. **Cache distribuida** (Redis) para mejorar la latencia de lecturas frecuentes.
+4. **Replicación y particionado** de datos para manejar escalabilidad horizontal.
+5. **Consistencia eventual** en caso de concurrencia alta (lecturas pueden estar levemente desactualizadas pero priorizan la performance).
 
 # ------Tecnologías utilizadas:--------
-# 1. Python -> Lenguaje Principal
-# 2. FastAPI -> Framework para la API REST
-# 3. SQLAlchemy -> ORM para manejo de base de datos
-# 4. Pydantic -> Para validar los datos 
-# 5. SQLite -> Base de datos 
-# 6. Uvicorn -> ASGI server
-# 7. Swagger UI -> para la documentación interactiva
+ 1. Python 3.10 o Superior -> Lenguaje Principal
+ 2. FastAPI -> Framework para la API REST
+ 3. SQLAlchemy -> ORM para manejo de base de datos
+ 4. Pydantic -> Para validar los datos 
+ 5. SQLite -> Base de datos 
+ 6. Uvicorn -> ASGI server
+ 7. Swagger UI -> para la documentación interactiva
+ 8. Redis -> Para caché distribuida
+ 9. Pytest -> Para realizar testing
 
+
+# -------Problema de Latencia y Coherencia:-------
+- Una sola base de datos centralizada no soporta alto tráfico.
+- El sistema incorpora:
+  - Cache para disminuir la latencia.
+  - Estrategias de sincronización para mantener la coherencia de datos.
+  - Posible uso de CQRS para separar las cargas de lectura y escritura.
