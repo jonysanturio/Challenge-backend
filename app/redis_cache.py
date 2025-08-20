@@ -1,25 +1,32 @@
 from functools import wraps
 from .databases import redis_client
-from .import Logger
+import logging
 import json
 import redis
+
+log = logging.getLogger("cache")
+
+def to_dict(result):
+    if hasattr(result, "__table__"):
+        return {c.name: getattr(result, c.name) for c in result.__table__.columns}
+    return result
 
 def distributed_cache(key_pattern: str, ttl : int = 30):
     def decorator(func):
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs):
             cache_key = key_pattern.format(**kwargs)
             try:
                 cache_date = redis_client.get(cache_key)
                 if cache_date:
-                    Logger.debug(f"Cache en la llave: {cache_key}")
                     return json.loads(cache_date)
-                result = await func(*args, **kwargs)
-                redis_client.setex(cache_key, ttl, json.dump(result))
+                result = func(*args, **kwargs)
+                payload = to_dict(result)
+                redis_client.setex(cache_key, ttl, json.dumps(payload, default=str))
                 return result
             
             except redis.RedisError as e:
-                Logger.error(f"Redis error: {str(e)}")
-            return await func(*args, **kwargs)
+                logging.error(f"Redis error: {str(e)}")
+            return func(*args, **kwargs)
         return wrapper
     return decorator

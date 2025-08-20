@@ -7,11 +7,11 @@
  Estructura modular: separación de capas (models, schemas, crud, main)
 
 
-## 🏗️ Arquitectura propuesta
-1. **API REST** para exponer operaciones CRUD.
-2. **Base de datos principal** (PostgreSQL).
-3. **Cache distribuida** (Redis) para mejorar la latencia de lecturas frecuentes.
-4. **Replicación y particionado** de datos para manejar escalabilidad horizontal.
+# -------Arquitectura:-------
+1. API REST (FastAPI) para exponer operaciones CRUD.
+2. Base de datos principal (SQLite)
+3. Cache distribuida (Redis) para mejorar la latencia de lecturas frecuentes.
+4. Replicación y particionado de datos para manejar escalabilidad horizontal.
 5. **Consistencia eventual** en caso de concurrencia alta (lecturas pueden estar levemente desactualizadas pero priorizan la performance).
 
 # ------Tecnologías utilizadas:--------
@@ -26,9 +26,7 @@
  9. Pytest -> Para realizar testing
 
 
-# -------Problema de Latencia y Coherencia:-------
-- Una sola base de datos centralizada no soporta alto tráfico.
-- El sistema incorpora:
-  - Cache para disminuir la latencia.
-  - Estrategias de sincronización para mantener la coherencia de datos.
-  - Posible uso de CQRS para separar las cargas de lectura y escritura.
+# ------Latencia y Coherencia:-------
+- Lecturas: cacheadas en Redis → baja latencia.
+- Escrituras: actualizan DB + publicar eventos → invalidar la caché.
+- Resultado: coherencia eventual entre instancias.
