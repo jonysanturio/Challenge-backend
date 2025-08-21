@@ -10,10 +10,12 @@ class ProductCreate(ProductBase):
     pass
 
 class ProductUpdate(BaseModel):
-    name: Optional[str] = None
     stock: Optional[int] = None
     price: Optional[float] = None
+    version : int
+    model_config = {"extra" : "forbid"}
 
 class ProductResponse(ProductBase):
     id: int
+    version : int
     model_config = {"from_attributes": True} 

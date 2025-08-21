@@ -21,7 +21,7 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 def read_product(product_id: int, db: Session = Depends(get_db)):
     return crud.get_Product(db, product_id=product_id)
 
-# 👇 CAMBIAR a plural
+
 @app.put("/products/{product_id}", response_model=schemas.ProductResponse)
 def update_product(product_id: int, product: schemas.ProductUpdate, db: Session = Depends(get_db)):
     return crud.update_Product(db=db, product_id=product_id, product=product)

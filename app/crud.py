@@ -1,7 +1,7 @@
-from . import schemas
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 from fastapi import HTTPException
-from . import models
+from . import models, schemas
 from .event_handler import publish_inventory
 from .redis_cache import distributed_cache
 from .databases import redis_client
@@ -27,23 +27,53 @@ def get_Product(db: Session, product_id: int):
     return product
 
 def update_Product(db: Session, product_id: int, product: schemas.ProductUpdate):
-    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    if not db_product:
-        raise HTTPException(status_code=404, detail="No se encontro producto")
-
-    for key, value in product.model_dump(exclude_unset=True).items():
-        setattr(db_product, key, value)
-
-    db.commit()
-    db.refresh(db_product)
-
+    data = product.model_dump(exclude_unset=True)
+    expected_version = data.pop("version", None)
+    if expected_version is None:
+        raise HTTPException(status_code=400, detail="Falta 'version' en el cuerpo")
+    allowed = {k: v for k, v in data.items() if k in {"stock", "price"}}
+    if not allowed:
+        obj = db.query(models.Product).filter(models.Product.id == product_id).first()
+        if not obj:
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+        return obj
+    lock = None
     try:
-        redis_client.delete(f"product_{product_id}")
-    except Exception:
-        pass
-
-    publish_inventory("update", db_product)
-    return db_product
+        try:
+            lock = redis_client.lock(
+                f"product:{product_id}:lock", timeout=5, blocking_timeout=1
+            )
+            if not lock.acquire(blocking=True):
+                raise HTTPException(status_code=423, detail="Reintentar: recurso bloqueado")
+        except Exception:
+            lock = None
+        stmt = (
+            update(models.Product)
+            .where(models.Product.id == product_id, models.Product.version == expected_version)
+            .values(**allowed, version=models.Product.version + 1)
+            .execution_options(synchronize_session=False)
+        )
+        result = db.execute(stmt)
+        if result.rowcount == 0:
+            db.rollback()
+            exists = db.query(models.Product.id).filter(models.Product.id == product_id).first()
+            if not exists:
+                raise HTTPException(status_code=404, detail="Producto no encontrado")
+            raise HTTPException(status_code=409, detail="Conflicto de versión. Refrescar y reintentar.")
+        db.commit()
+        obj = db.query(models.Product).filter(models.Product.id == product_id).first()
+        try:
+            redis_client.delete(f"product_{product_id}")
+        except Exception:
+            pass
+        publish_inventory("update", obj)
+        return obj
+    finally:
+        if lock:
+            try:
+                lock.release()
+            except Exception:
+                pass
 
 def delete_Product(db: Session, product_id: int):
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
